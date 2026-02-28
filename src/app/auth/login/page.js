@@ -64,20 +64,19 @@ export default function LoginPage() {
   const onSubmit = async (data) => {
   try {
     const result = await login(data)
+    console.log("Login result:", result)
+    console.log("User role:", result?.user?.role)
+    console.log("isAuthenticated:", useAuthStore.getState().isAuthenticated)
+    
     if (result.success) {
-      toast.success("Welcome back! Logged in successfully.")
-      
-      // router.replace ki jagah window.location use karo
-      if (result.user.role === "ADMIN") {
-        window.location.href = "/admin/dashboard"
-      } else {
-        window.location.href = "/employee/dashboard"
-      }
+      toast.success("Welcome back!")
+      console.log("Redirecting to:", result.user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard")
+      window.location.href = result.user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard"
     }
   } catch (error) {
-    const message =
-      error.response?.data?.message || "Invalid credentials. Please try again."
-    toast.error(message)
+    console.log("Login error:", error)
+    console.log("Error response:", error.response?.data)
+    toast.error(error.response?.data?.message || "Invalid credentials")
   }
 }
 
