@@ -36,10 +36,9 @@ export default function LoginPage() {
 
   const role = watch("role")
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      router.push(user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard")
+      router.replace(user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard")
     }
   }, [isAuthenticated, user, router])
 
@@ -48,29 +47,40 @@ export default function LoginPage() {
       const result = await login(data)
       if (result.success) {
         toast.success("Welcome back! Logged in successfully.")
+        // Direct redirect — useEffect pe depend mat karo
+        router.replace(
+          result.user.role === "ADMIN"
+            ? "/admin/dashboard"
+            : "/employee/dashboard"
+        )
       }
     } catch (error) {
-      const message = error.response?.data?.message || "Invalid credentials. Please try again."
+      const message =
+        error.response?.data?.message || "Invalid credentials. Please try again."
       toast.error(message)
-      
-      if (error.response?.data?.code === "ACCOUNT_LOCKED") {
-        toast.error("Your account is locked. Please reset your password or contact admin.")
-      }
     }
   }
 
   return (
     <div className="min-h-screen flex">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
         style={{ background: "hsl(222 47% 11%)" }}
       >
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 h-96 w-96 rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, hsl(217 91% 60%), transparent)", transform: "translate(30%, -30%)" }}
+        <div
+          className="absolute top-0 right-0 h-96 w-96 rounded-full opacity-10"
+          style={{
+            background: "radial-gradient(circle, hsl(217 91% 60%), transparent)",
+            transform: "translate(30%, -30%)",
+          }}
         />
-        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, hsl(217 91% 60%), transparent)", transform: "translate(-30%, 30%)" }}
+        <div
+          className="absolute bottom-0 left-0 h-64 w-64 rounded-full opacity-10"
+          style={{
+            background: "radial-gradient(circle, hsl(217 91% 60%), transparent)",
+            transform: "translate(-30%, 30%)",
+          }}
         />
 
         <div className="relative z-10">
@@ -79,7 +89,12 @@ export default function LoginPage() {
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-xl font-bold text-white" style={{ fontFamily: "Syne, sans-serif" }}>EMS Pro</p>
+              <p
+                className="text-xl font-bold text-white"
+                style={{ fontFamily: "Syne, sans-serif" }}
+              >
+                EMS Pro
+              </p>
               <p className="text-xs text-blue-300">Employee Management System</p>
             </div>
           </div>
@@ -87,11 +102,16 @@ export default function LoginPage() {
 
         <div className="relative z-10 space-y-6">
           <div>
-            <h2 className="text-4xl font-bold text-white leading-tight" style={{ fontFamily: "Syne, sans-serif" }}>
-              Manage your<br />team smarter
+            <h2
+              className="text-4xl font-bold text-white leading-tight"
+              style={{ fontFamily: "Syne, sans-serif" }}
+            >
+              Manage your
+              <br />
+              team smarter
             </h2>
             <p className="text-blue-300 mt-3 text-base leading-relaxed">
-              Complete HR solution — attendance tracking, payroll management, 
+              Complete HR solution — attendance tracking, payroll management,
               task assignments, and real-time insights.
             </p>
           </div>
@@ -103,7 +123,11 @@ export default function LoginPage() {
               { num: "Auto", label: "Salary calculation" },
               { num: "0 Cost", label: "Free deployment" },
             ].map(({ num, label }) => (
-              <div key={label} className="rounded-xl p-4" style={{ background: "hsl(220 30% 18%)" }}>
+              <div
+                key={label}
+                className="rounded-xl p-4"
+                style={{ background: "hsl(220 30% 18%)" }}
+              >
                 <p className="text-xl font-bold text-primary">{num}</p>
                 <p className="text-xs text-blue-300 mt-0.5">{label}</p>
               </div>
@@ -112,7 +136,9 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-          <p className="text-xs text-blue-400">© 2024 EMS Pro. 100% Free deployment stack.</p>
+          <p className="text-xs text-blue-400">
+            © 2024 EMS Pro. 100% Free deployment stack.
+          </p>
         </div>
       </div>
 
@@ -124,12 +150,24 @@ export default function LoginPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
               <Building2 className="h-5 w-5 text-white" />
             </div>
-            <p className="text-xl font-bold" style={{ fontFamily: "Syne, sans-serif" }}>EMS Pro</p>
+            <p
+              className="text-xl font-bold"
+              style={{ fontFamily: "Syne, sans-serif" }}
+            >
+              EMS Pro
+            </p>
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold" style={{ fontFamily: "Syne, sans-serif" }}>Welcome back</h1>
-            <p className="text-muted-foreground text-sm mt-1">Sign in to your account to continue</p>
+            <h1
+              className="text-2xl font-bold"
+              style={{ fontFamily: "Syne, sans-serif" }}
+            >
+              Welcome back
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Sign in to your account to continue
+            </p>
           </div>
 
           {/* Role toggle */}
@@ -161,20 +199,29 @@ export default function LoginPage() {
               </Label>
               <Input
                 id="emailOrEmployeeId"
-                placeholder={role === "EMPLOYEE" ? "EMP-001" : "admin@company.com"}
+                placeholder={
+                  role === "EMPLOYEE" ? "EMP001" : "admin@company.com"
+                }
                 {...register("emailOrEmployeeId")}
                 error={errors.emailOrEmployeeId}
                 className="mt-1.5"
               />
               {errors.emailOrEmployeeId && (
-                <p className="form-error">{errors.emailOrEmployeeId.message}</p>
+                <p className="form-error">
+                  {errors.emailOrEmployeeId.message}
+                </p>
               )}
             </div>
 
             <div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" required>Password</Label>
-                <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline">
+                <Label htmlFor="password" required>
+                  Password
+                </Label>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -191,10 +238,16 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
-              {errors.password && <p className="form-error">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="form-error">{errors.password.message}</p>
+              )}
             </div>
 
             <Button type="submit" className="w-full" loading={isSubmitting}>

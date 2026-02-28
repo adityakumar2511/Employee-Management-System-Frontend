@@ -10,8 +10,8 @@ const useAuthStore = create(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
-
       hydrated: false,
+
       setHydrated: () => set({ hydrated: true }),
 
       login: async (credentials) => {
@@ -31,7 +31,7 @@ const useAuthStore = create(
             isLoading: false,
           })
 
-          return { success: true, role: user.role }
+          return { success: true, user, role: user.role }
         } catch (error) {
           set({ isLoading: false })
           throw error
@@ -79,13 +79,9 @@ const useAuthStore = create(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state, error) => {
-        // Dono cases mein hydrated true karo:
-        // 1. Storage mein data tha aur load ho gaya (state exists)
-        // 2. Storage empty thi ya error aayi (fresh user)
         if (state) {
           state.setHydrated()
         } else {
-          // Fresh user — directly store update karo
           useAuthStore.setState({ hydrated: true })
         }
       },
