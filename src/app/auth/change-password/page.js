@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { FormField } from '@/components/ui/FormField'
 import api from '@/lib/api'
-import { authStore } from '@/store/authStore'
+import authStore from '@/store/authStore'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 
