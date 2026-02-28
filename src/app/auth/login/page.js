@@ -42,24 +42,44 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, router])
 
+  // const onSubmit = async (data) => {
+  //   try {
+  //     const result = await login(data)
+  //     if (result.success) {
+  //       toast.success("Welcome back! Logged in successfully.")
+  //       // Direct redirect — useEffect pe depend mat karo
+  //       router.replace(
+  //         result.user.role === "ADMIN"
+  //           ? "/admin/dashboard"
+  //           : "/employee/dashboard"
+  //       )
+  //     }
+  //   } catch (error) {
+  //     const message =
+  //       error.response?.data?.message || "Invalid credentials. Please try again."
+  //     toast.error(message)
+  //   }
+  // }
+
   const onSubmit = async (data) => {
-    try {
-      const result = await login(data)
-      if (result.success) {
-        toast.success("Welcome back! Logged in successfully.")
-        // Direct redirect — useEffect pe depend mat karo
-        router.replace(
-          result.user.role === "ADMIN"
-            ? "/admin/dashboard"
-            : "/employee/dashboard"
-        )
+  try {
+    const result = await login(data)
+    if (result.success) {
+      toast.success("Welcome back! Logged in successfully.")
+      
+      // router.replace ki jagah window.location use karo
+      if (result.user.role === "ADMIN") {
+        window.location.href = "/admin/dashboard"
+      } else {
+        window.location.href = "/employee/dashboard"
       }
-    } catch (error) {
-      const message =
-        error.response?.data?.message || "Invalid credentials. Please try again."
-      toast.error(message)
     }
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Invalid credentials. Please try again."
+    toast.error(message)
   }
+}
 
   return (
     <div className="min-h-screen flex">
