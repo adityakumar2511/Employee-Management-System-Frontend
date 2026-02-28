@@ -42,43 +42,24 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, router])
 
-  // const onSubmit = async (data) => {
-  //   try {
-  //     const result = await login(data)
-  //     if (result.success) {
-  //       toast.success("Welcome back! Logged in successfully.")
-  //       // Direct redirect — useEffect pe depend mat karo
-  //       router.replace(
-  //         result.user.role === "ADMIN"
-  //           ? "/admin/dashboard"
-  //           : "/employee/dashboard"
-  //       )
-  //     }
-  //   } catch (error) {
-  //     const message =
-  //       error.response?.data?.message || "Invalid credentials. Please try again."
-  //     toast.error(message)
-  //   }
-  // }
-
   const onSubmit = async (data) => {
-  try {
-    const result = await login(data)
-    console.log("Login result:", result)
-    console.log("User role:", result?.user?.role)
-    console.log("isAuthenticated:", useAuthStore.getState().isAuthenticated)
-    
-    if (result.success) {
-      toast.success("Welcome back!")
-      console.log("Redirecting to:", result.user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard")
-      window.location.href = result.user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard"
+    try {
+      const result = await login(data)
+      if (result.success) {
+        toast.success("Welcome back! Logged in successfully.")
+        // Direct redirect — useEffect pe depend mat karo
+        router.replace(
+          result.user.role === "ADMIN"
+            ? "/admin/dashboard"
+            : "/employee/dashboard"
+        )
+      }
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Invalid credentials. Please try again."
+      toast.error(message)
     }
-  } catch (error) {
-    console.log("Login error:", error)
-    console.log("Error response:", error.response?.data)
-    toast.error(error.response?.data?.message || "Invalid credentials")
   }
-}
 
   return (
     <div className="min-h-screen flex">

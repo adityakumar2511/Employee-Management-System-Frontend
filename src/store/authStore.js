@@ -20,8 +20,13 @@ const useAuthStore = create(
           const { data } = await api.post("/auth/login", credentials)
           const { user, accessToken, refreshToken } = data.data
 
+          // localStorage mein save karo
           localStorage.setItem("accessToken", accessToken)
           localStorage.setItem("refreshToken", refreshToken)
+
+          // Cookie mein bhi save karo — middleware isi se check karta hai
+          document.cookie = `accessToken=${accessToken}; path=/; max-age=${15 * 60}; SameSite=Lax`
+          document.cookie = `refreshToken=${refreshToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
 
           set({
             user,
@@ -45,6 +50,10 @@ const useAuthStore = create(
 
         localStorage.removeItem("accessToken")
         localStorage.removeItem("refreshToken")
+
+        // Cookie bhi clear karo
+        document.cookie = "accessToken=; path=/; max-age=0; SameSite=Lax"
+        document.cookie = "refreshToken=; path=/; max-age=0; SameSite=Lax"
 
         set({
           user: null,
@@ -80,6 +89,17 @@ const useAuthStore = create(
       }),
       onRehydrateStorage: () => (state, error) => {
         if (state) {
+          // localStorage se token uthao aur cookie refresh karo
+          const accessToken = localStorage.getItem("accessToken")
+          const refreshToken = localStorage.getItem("refreshToken")
+
+          if (accessToken) {
+            document.cookie = `accessToken=${accessToken}; path=/; max-age=${15 * 60}; SameSite=Lax`
+          }
+          if (refreshToken) {
+            document.cookie = `refreshToken=${refreshToken}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`
+          }
+
           state.setHydrated()
         } else {
           useAuthStore.setState({ hydrated: true })
