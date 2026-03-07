@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "next dev --port 3000 --webpack",
     "build": "next build",
     "start": "next start"
   },
@@ -38,6 +38,7 @@
     "firebase-admin": "^13.6.1",
     "geolib": "^3.3.4",
     "joi": "^18.0.2",
+    "jose": "^6.2.0",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.0",
     "leaflet": "^1.9.4",

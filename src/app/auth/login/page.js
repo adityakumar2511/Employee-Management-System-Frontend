@@ -20,7 +20,7 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, isAuthenticated, user } = useAuthStore()
+  const { login, isAuthenticated, user, hydrated } = useAuthStore()
   const { toast } = useToast()
   const [showPassword, setShowPassword] = useState(false)
 
@@ -36,18 +36,22 @@ export default function LoginPage() {
 
   const role = watch("role")
 
+  // ✅ Fix 1: hydrated check — store rehydrate hone tak redirect mat karo
   useEffect(() => {
+    if (!hydrated) return
     if (isAuthenticated && user) {
-      router.replace(user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard")
+      router.replace(
+        user.role === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard"
+      )
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, hydrated])
 
   const onSubmit = async (data) => {
     try {
       const result = await login(data)
-      if (result.success) {
+      if (result?.success) {
         toast.success("Welcome back! Logged in successfully.")
-        // Direct redirect — useEffect pe depend mat karo
+        // ✅ Fix 2: replace use karo taaki back button loop na kare
         router.replace(
           result.user.role === "ADMIN"
             ? "/admin/dashboard"
@@ -55,10 +59,23 @@ export default function LoginPage() {
         )
       }
     } catch (error) {
+      // ✅ Fix 3: saare possible error shapes handle karo
       const message =
-        error.response?.data?.message || "Invalid credentials. Please try again."
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Invalid credentials. Please try again."
       toast.error(message)
     }
+  }
+
+  // ✅ Fix 4: hydrate hone tak blank screen dikhao (flicker prevent)
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    )
   }
 
   return (

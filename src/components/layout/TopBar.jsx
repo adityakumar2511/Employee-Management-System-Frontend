@@ -128,7 +128,13 @@ export default function TopBar({ title }) {
             Profile Settings
           </DropdownItem>
           <DropdownSeparator />
-          <DropdownItem danger onClick={logout}>
+          {/* <DropdownItem danger onClick={logout}>
+            Sign Out
+          </DropdownItem> */}
+          <DropdownItem danger onClick={async () => {
+            await logout()
+            router.push("/auth/login")
+          }}>
             Sign Out
           </DropdownItem>
         </Dropdown>
