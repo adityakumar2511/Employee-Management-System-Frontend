@@ -133,7 +133,7 @@ export default function TopBar({ title }) {
           </DropdownItem> */}
           <DropdownItem danger onClick={async () => {
             await logout()
-            router.push("/auth/login")
+            // router.push("/auth/login")
           }}>
             Sign Out
           </DropdownItem>
