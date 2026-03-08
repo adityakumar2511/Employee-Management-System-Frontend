@@ -70,8 +70,8 @@ const useAuthStore = create(
           isAuthenticated: false,
         })
 
-        // Hard redirect — router nahi, direct browser navigation
-        window.location.href = "/auth/login"
+        // ✅ replace use karo — back button history mein nahi jayega
+        window.location.replace("/auth/login")
       },
 
       updateUser: (userData) => {
