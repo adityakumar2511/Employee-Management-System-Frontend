@@ -2,11 +2,12 @@
   "name": "ems-frontend",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev --port 3000 --webpack",
-    "build": "next build",
-    "start": "next start"
-  },
+ "scripts": {
+  "dev": "next dev --port 3000",
+  "build": "next build",
+  "start": "next start --port 3000",
+  "lint": "next lint"
+},
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-avatar": "^1.1.0",
@@ -47,6 +48,7 @@
     "react-is": "^18.3.1",
     "react-leaflet": "^4.2.1",
     "recharts": "^2.12.7",
+    "socket.io-client": "^4.8.3",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",

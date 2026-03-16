@@ -70,7 +70,6 @@ const useAuthStore = create(
           isAuthenticated: false,
         })
 
-        // ✅ replace use karo — back button history mein nahi jayega
         window.location.replace("/auth/login")
       },
 
