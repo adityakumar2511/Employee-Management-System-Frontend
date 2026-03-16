@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ✅ Turbopack disable — webpack force karo
-  webpack: (config) => config,
-
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
@@ -14,6 +11,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'example.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
       },
     ],
   },
