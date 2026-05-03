@@ -10,7 +10,10 @@ const setCookie = (name, value, maxAge) => {
 }
 
 const clearCookie = (name) => {
+  // ✅ Domain explicitly clear karo — production mein zaroori
   document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${secureFlag}`
+  // Vercel domain ke liye bhi clear karo
+  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${secureFlag}; domain=${window.location.hostname}`
 }
 
 const useAuthStore = create(
@@ -54,23 +57,31 @@ const useAuthStore = create(
 
       logout: async () => {
         try {
-          await api.post("/auth/logout")
+          const { refreshToken } = get()
+          if (refreshToken) {
+            await api.post("/auth/logout", { refreshToken })
+          }
         } catch (_) {}
 
+        // ✅ Sab clear karo
         localStorage.removeItem("accessToken")
         localStorage.removeItem("refreshToken")
+        localStorage.removeItem("ems-auth") // Zustand persist bhi
 
         clearCookie("accessToken")
         clearCookie("refreshToken")
 
+        // ✅ State reset pehle
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
+          hydrated: true,
         })
 
-        window.location.replace("/auth/login")
+        // ✅ window.location NAHI — router se handle hoga (useAuth mein)
+        // Yahan se redirect REMOVE kiya — conflict hota tha
       },
 
       updateUser: (userData) => {
@@ -99,11 +110,13 @@ const useAuthStore = create(
       }),
       onRehydrateStorage: () => (state, error) => {
         if (state) {
-          const accessToken = localStorage.getItem("accessToken")
-          const refreshToken = localStorage.getItem("refreshToken")
-
-          if (accessToken) setCookie("accessToken", accessToken, 15 * 60)
-          if (refreshToken) setCookie("refreshToken", refreshToken, 7 * 24 * 60 * 60)
+          // ✅ Rehydrate par cookies sync karo
+          try {
+            const accessToken = localStorage.getItem("accessToken")
+            const refreshToken = localStorage.getItem("refreshToken")
+            if (accessToken) setCookie("accessToken", accessToken, 15 * 60)
+            if (refreshToken) setCookie("refreshToken", refreshToken, 7 * 24 * 60 * 60)
+          } catch (_) {}
 
           state.setHydrated()
         } else {

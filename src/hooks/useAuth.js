@@ -8,6 +8,7 @@ export function useAuth() {
     user,
     isAuthenticated,
     isLoading,
+    hydrated,
     login: storeLogin,
     logout: storeLogout,
     getRole,
@@ -20,10 +21,11 @@ export function useAuth() {
     async (credentials) => {
       const result = await storeLogin(credentials)
       if (result.success) {
+        // ✅ router.replace — back button se login pe nahi jaayega
         if (result.role === "ADMIN") {
-          router.push("/admin/dashboard")
+          router.replace("/admin/dashboard")
         } else {
-          router.push("/employee/dashboard")
+          router.replace("/employee/dashboard")
         }
       }
       return result
@@ -32,18 +34,23 @@ export function useAuth() {
   )
 
   const logout = useCallback(async () => {
-    await storeLogout()
-    router.push("/auth/login")
+    await storeLogout() // state + localStorage + cookies clear
+
+    // ✅ Ek hi redirect — router.replace (no conflict)
+    // window.location.replace nahi — router hi kaafi hai
+    router.replace("/auth/login")
   }, [storeLogout, router])
 
   const requireAuth = useCallback(
     (requiredRole = null) => {
       if (!isAuthenticated) {
-        router.push("/auth/login")
+        router.replace("/auth/login")
         return false
       }
       if (requiredRole && getRole() !== requiredRole) {
-        router.push(getRole() === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard")
+        router.replace(
+          getRole() === "ADMIN" ? "/admin/dashboard" : "/employee/dashboard"
+        )
         return false
       }
       return true
@@ -55,6 +62,7 @@ export function useAuth() {
     user,
     isAuthenticated,
     isLoading,
+    hydrated,
     login,
     logout,
     requireAuth,
