@@ -1,73 +1,150 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { socket } from "@/lib/socket"
 import { queryClient } from "@/lib/queryClient"
 
-// data:refresh event ke type ko React Query keys se map karo
+// ✅ Actual page query keys se match kiya
 const TYPE_TO_QUERY_KEYS = {
-  employees:         [["employees"], ["dashboard-stats"]],
-  attendance:        [["attendance"], ["attendance", "today"], ["attendance", "my"], ["dashboard-stats"]],
-  leaves:            [["leaves"], ["leaves", "my"], ["leaves", "balance"], ["dashboard-stats"]],
-  tasks:             [["tasks"], ["tasks", "my"], ["dashboard-stats"]],
-  payroll:           [["payroll"], ["payroll", "my-slips"]],
-  "personal-holidays": [["personal-holidays"], ["personal-holidays", "my"], ["personal-holidays", "balance"], ["dashboard-stats"]],
-  wfh:               [["wfh"], ["attendance"]],
-  dashboard:         [["dashboard-stats"]],
-  profile:           [["me"], ["employees"]],
-  documents:         [["documents"]],
+  employees: [
+    ["employees"],
+    ["dashboard-stats"],
+  ],
+
+  attendance: [
+    ["attendance"],
+    ["attendance-admin"],
+    ["attendance", "today"],
+    ["attendance", "my"],
+    ["dashboard-stats"],
+  ],
+
+  leaves: [
+    // Admin page
+    ["leaves-admin"],
+    // Employee page
+    ["my-leaves"],
+    ["leave-balance"],
+    ["leave-types"],
+    ["dashboard-stats"],
+  ],
+
+  tasks: [
+    ["tasks"],
+    ["tasks", "my"],
+    ["dashboard-stats"],
+  ],
+
+  payroll: [
+    ["payroll"],
+    ["payroll", "my-slips"],
+    ["salary-structure"],
+  ],
+
+  "personal-holidays": [
+    ["personal-holidays"],
+    ["personal-holidays", "my"],
+    ["personal-holidays", "balance"],
+    ["dashboard-stats"],
+  ],
+
+  wfh: [
+    ["attendance"],
+    ["attendance-admin"],
+    ["attendance", "today"],
+  ],
+
+  dashboard: [
+    ["dashboard-stats"],
+  ],
+
+  profile: [
+    ["me"],
+    ["employees"],
+  ],
+
+  documents: [
+    ["documents"],
+    ["employees"],
+  ],
 }
 
 export function useSocket(employeeId, isAdmin) {
+  // ✅ Track karo ki join ho chuke hain — dobara join mat karo
+  const joinedRef = useRef(false)
+
   useEffect(() => {
-    // employeeId nahi hai toh connect mat karo
     if (!employeeId) return
 
-    // Connect
-    socket.connect()
-
-    // Personal room join karo
-    socket.emit("join", employeeId)
-
-    // Admin room join karo
-    if (isAdmin) {
-      socket.emit("joinAdmin")
+    // ─── Connect (agar already connected hai toh skip) ──────────────────────
+    if (!socket.connected) {
+      socket.connect()
     }
 
-    // ─── data:refresh event — sabse important ────────────────────────────────
-    socket.on("data:refresh", ({ type }) => {
-      const keys = TYPE_TO_QUERY_KEYS[type] || []
+    // ─── Rooms join karo (sirf ek baar) ─────────────────────────────────────
+    if (!joinedRef.current) {
+      socket.emit("join", employeeId)
+      if (isAdmin) socket.emit("joinAdmin")
+      joinedRef.current = true
+    }
+
+    // ─── data:refresh — broad invalidate for all matching keys ───────────────
+    function onDataRefresh({ type }) {
+      const keys = TYPE_TO_QUERY_KEYS[type]
+      if (!keys) return
+
       keys.forEach((key) => {
-        queryClient.invalidateQueries({ queryKey: key })
+        // exact: false — partial match bhi invalidate hoga
+        // e.g. ["leaves-admin"] match karega ["leaves-admin", page, search, ...]
+        queryClient.invalidateQueries({ queryKey: key, exact: false })
       })
-    })
+    }
 
-    // ─── Attendance specific event ────────────────────────────────────────────
-    socket.on("attendance:updated", (data) => {
-      queryClient.invalidateQueries({ queryKey: ["attendance", "today"] })
-      queryClient.invalidateQueries({ queryKey: ["attendance", "my"] })
+    // ─── Attendance specific ─────────────────────────────────────────────────
+    function onAttendanceUpdated() {
+      queryClient.invalidateQueries({ queryKey: ["attendance"], exact: false })
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] })
-    })
+    }
 
-    // ─── Connection events (debug ke liye) ────────────────────────────────────
-    socket.on("connect", () => {
+    // ─── Reconnect par rooms rejoin karo ─────────────────────────────────────
+    function onReconnect() {
+      console.log("🔄 Socket reconnected — rejoining rooms")
+      joinedRef.current = false
+      socket.emit("join", employeeId)
+      if (isAdmin) socket.emit("joinAdmin")
+      joinedRef.current = true
+    }
+
+    function onConnect() {
       console.log("🟢 Socket connected:", socket.id)
-    })
+      // Reconnect case handle karo
+      if (joinedRef.current) {
+        socket.emit("join", employeeId)
+        if (isAdmin) socket.emit("joinAdmin")
+      }
+    }
 
-    socket.on("disconnect", (reason) => {
+    function onDisconnect(reason) {
       console.log("🔴 Socket disconnected:", reason)
-    })
+      joinedRef.current = false
+    }
 
-    socket.on("connect_error", (err) => {
-      console.warn("⚠️ Socket connection error:", err.message)
-    })
+    function onConnectError(err) {
+      console.warn("⚠️ Socket error:", err.message)
+    }
 
-    // Cleanup on unmount
+    socket.on("data:refresh", onDataRefresh)
+    socket.on("attendance:updated", onAttendanceUpdated)
+    socket.on("connect", onConnect)
+    socket.on("disconnect", onDisconnect)
+    socket.on("connect_error", onConnectError)
+
+    // ✅ Cleanup — sirf listeners remove karo, disconnect mat karo
     return () => {
-      socket.off("data:refresh")
-      socket.off("attendance:updated")
-      socket.off("connect")
-      socket.off("disconnect")
-      socket.off("connect_error")
-      socket.disconnect()
+      socket.off("data:refresh", onDataRefresh)
+      socket.off("attendance:updated", onAttendanceUpdated)
+      socket.off("connect", onConnect)
+      socket.off("disconnect", onDisconnect)
+      socket.off("connect_error", onConnectError)
+      // ❌ socket.disconnect() — REMOVED — connection live rakhna hai
     }
   }, [employeeId, isAdmin])
 }

@@ -4,10 +4,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
   withCredentials: true,
+  timeout: 15000, // ✅ 15s timeout — hanging requests band
 })
 
 let isRefreshing = false
@@ -21,7 +20,6 @@ const processQueue = (error, token = null) => {
   failedQueue = []
 }
 
-// Zustand persist se token nikalo (ems-auth key mein stored hai)
 function getTokens() {
   try {
     const raw = localStorage.getItem("ems-auth")
@@ -36,7 +34,6 @@ function getTokens() {
   }
 }
 
-// Zustand persist mein naye tokens save karo
 function saveTokens(accessToken, refreshToken) {
   try {
     const raw = localStorage.getItem("ems-auth")
@@ -47,7 +44,7 @@ function saveTokens(accessToken, refreshToken) {
   } catch {}
 }
 
-// Request interceptor — attach access token
+// ✅ Request interceptor
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
@@ -61,21 +58,18 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor — handle 401 + token refresh
+// ✅ Response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
 
-    // Refresh endpoint khud 401 de toh seedha redirect — loop nahi
     if (originalRequest.url?.includes("/auth/refresh")) {
       clearAuthAndRedirect()
       return Promise.reject(error)
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-
-      // Agar refresh already chal raha hai toh queue mein daalo
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -97,16 +91,15 @@ api.interceptors.response.use(
           return Promise.reject(error)
         }
 
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        })
+        const { data } = await axios.post(
+          `${API_URL}/auth/refresh`,
+          { refreshToken },
+          { timeout: 10000 } // ✅ Refresh request ka alag timeout
+        )
 
         const { accessToken, refreshToken: newRefreshToken } = data.data
 
-        // Zustand persist storage mein save karo
         saveTokens(accessToken, newRefreshToken)
-
-        // Default header bhi update karo
         api.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
 
@@ -128,9 +121,6 @@ api.interceptors.response.use(
 function clearAuthAndRedirect() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("ems-auth")
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
-    localStorage.removeItem("user")
     window.location.href = "/auth/login"
   }
 }

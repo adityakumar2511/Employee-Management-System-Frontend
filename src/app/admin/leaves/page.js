@@ -5,7 +5,6 @@ import AdminLayout from "@/components/layout/AdminLayout"
 import { Button } from "@/components/ui/Button"
 import { SearchInput } from "@/components/ui/SearchInput"
 import { Select } from "@/components/ui/Select"
-import { Input } from "@/components/ui/Input"
 import { Label } from "@/components/ui/Label"
 import { Textarea } from "@/components/ui/Textarea"
 import { Avatar } from "@/components/ui/Avatar"
@@ -18,7 +17,7 @@ import { leaveService } from "@/services/leave.service"
 import { useToast } from "@/hooks/useToast"
 import { useDebounce } from "@/hooks/useDebounce"
 import { formatDate } from "@/lib/utils"
-import { CheckCircle, XCircle, Eye, Plus, Settings } from "lucide-react"
+import { CheckCircle, XCircle, Settings } from "lucide-react"
 
 export default function LeavesPage() {
   const { toast } = useToast()
@@ -32,16 +31,20 @@ export default function LeavesPage() {
 
   const debouncedSearch = useDebounce(search)
 
+  // API returns: { success, data: { leaves, totalPages, pendingCount } }
   const { data, isLoading } = useQuery({
     queryKey: ["leaves-admin", page, debouncedSearch, statusFilter],
-    queryFn: () => leaveService.getAllLeaves({ page, limit: 15, search: debouncedSearch, status: statusFilter }),
-    select: (d) => d.data,
+    queryFn: () => leaveService.getAllLeaves({
+      page, limit: 15, search: debouncedSearch, status: statusFilter,
+    }),
+    select: d => d.data, // ✅ correct — need whole object {leaves, totalPages, pendingCount}
   })
 
+  // ✅ FIX: d.data.leaveTypes array chahiye, not d.data object
   const { data: leaveTypes } = useQuery({
     queryKey: ["leave-types"],
     queryFn: () => leaveService.getLeaveTypes(),
-    select: (d) => d.data,
+    select: d => d.data?.leaveTypes || d.data || [],
   })
 
   const approveMutation = useMutation({
@@ -50,8 +53,9 @@ export default function LeavesPage() {
       qc.invalidateQueries({ queryKey: ["leaves-admin"] })
       toast.success("Leave approved successfully")
       setSelectedLeave(null)
+      setComment("")
     },
-    onError: (e) => toast.error(e.response?.data?.message || "Failed to approve"),
+    onError: e => toast.error(e.response?.data?.message || "Failed to approve"),
   })
 
   const rejectMutation = useMutation({
@@ -60,13 +64,13 @@ export default function LeavesPage() {
       qc.invalidateQueries({ queryKey: ["leaves-admin"] })
       toast.success("Leave rejected")
       setSelectedLeave(null)
+      setComment("")
     },
-    onError: (e) => toast.error(e.response?.data?.message || "Failed to reject"),
+    onError: e => toast.error(e.response?.data?.message || "Failed to reject"),
   })
 
   const leaves = data?.leaves || []
   const totalPages = data?.totalPages || 1
-
   const pendingCount = data?.pendingCount || 0
 
   return (
@@ -76,7 +80,11 @@ export default function LeavesPage() {
           <div className="page-header mb-0">
             <h1 className="page-title">Leave Management</h1>
             <p className="page-subtitle">
-              {pendingCount > 0 && <span className="text-yellow-600 font-medium">{pendingCount} pending approvals · </span>}
+              {pendingCount > 0 && (
+                <span className="text-yellow-600 font-medium">
+                  {pendingCount} pending approvals ·{" "}
+                </span>
+              )}
               Review and manage employee leave requests
             </p>
           </div>
@@ -94,7 +102,11 @@ export default function LeavesPage() {
             onChange={setSearch}
             className="flex-1"
           />
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-40">
+          <Select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="w-40"
+          >
             <option value="">All Status</option>
             <option value="PENDING">Pending</option>
             <option value="APPROVED">Approved</option>
@@ -119,61 +131,82 @@ export default function LeavesPage() {
               </tr>
             </TableHead>
             <TableBody>
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} cols={9} />)
-              ) : leaves.length === 0 ? (
-                <EmptyRow colSpan={9} message="No leave requests found" />
-              ) : (
-                leaves.map((leave) => (
-                  <TableRow key={leave.id}>
-                    <Td>
-                      <div className="flex items-center gap-2">
-                        <Avatar name={leave.employee?.name} size="sm" />
-                        <div>
-                          <p className="font-medium text-sm">{leave.employee?.name}</p>
-                          <p className="text-xs text-muted-foreground">{leave.employee?.employeeId}</p>
+              {isLoading
+                ? Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} cols={9} />)
+                : leaves.length === 0
+                  ? <EmptyRow colSpan={9} message="No leave requests found" />
+                  : leaves.map(leave => (
+                    <TableRow key={leave.id}>
+                      <Td>
+                        <div className="flex items-center gap-2">
+                          <Avatar name={leave.employee?.name} size="sm" />
+                          <div>
+                            <p className="font-medium text-sm">{leave.employee?.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {leave.employee?.employeeId}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </Td>
-                    <Td>
-                      <span className="text-sm">{leave.leaveType?.name}</span>
-                      {leave.isHalfDay && <Badge variant="info" className="ml-1.5 text-xs">Half Day</Badge>}
-                    </Td>
-                    <Td className="text-sm">{formatDate(leave.fromDate)}</Td>
-                    <Td className="text-sm">{formatDate(leave.toDate)}</Td>
-                    <Td className="text-sm font-medium">{leave.days}</Td>
-                    <Td className="text-sm max-w-[180px] truncate text-muted-foreground">{leave.reason}</Td>
-                    <Td className="text-xs text-muted-foreground">{formatDate(leave.createdAt)}</Td>
-                    <Td><StatusBadge status={leave.status === "PENDING" ? "Pending" : leave.status === "APPROVED" ? "Approved" : "Rejected"} /></Td>
-                    <Td className="text-right">
-                      {leave.status === "PENDING" ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="success"
-                            onClick={() => { setSelectedLeave({ ...leave, action: "approve" }); setComment("") }}
-                          >
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => { setSelectedLeave({ ...leave, action: "reject" }); setComment("") }}
-                          >
-                            <XCircle className="h-3.5 w-3.5" />
-                            Reject
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {leave.adminComment && `"${leave.adminComment.slice(0, 20)}..."`}
-                        </span>
-                      )}
-                    </Td>
-                  </TableRow>
-                ))
-              )}
+                      </Td>
+                      <Td>
+                        <span className="text-sm">{leave.leaveType?.name || "—"}</span>
+                        {leave.isHalfDay && (
+                          <Badge variant="info" className="ml-1.5 text-xs">Half Day</Badge>
+                        )}
+                      </Td>
+                      <Td className="text-sm">{formatDate(leave.fromDate)}</Td>
+                      <Td className="text-sm">{formatDate(leave.toDate)}</Td>
+                      <Td className="text-sm font-medium">{leave.days}</Td>
+                      <Td className="text-sm max-w-[180px] truncate text-muted-foreground">
+                        {leave.reason}
+                      </Td>
+                      <Td className="text-xs text-muted-foreground">
+                        {formatDate(leave.createdAt)}
+                      </Td>
+                      <Td>
+                        <StatusBadge
+                          status={
+                            leave.status === "PENDING" ? "Pending"
+                            : leave.status === "APPROVED" ? "Approved"
+                            : "Rejected"
+                          }
+                        />
+                      </Td>
+                      <Td className="text-right">
+                        {leave.status === "PENDING" ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="success"
+                              onClick={() => {
+                                setSelectedLeave({ ...leave, action: "approve" })
+                                setComment("")
+                              }}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setSelectedLeave({ ...leave, action: "reject" })
+                                setComment("")
+                              }}
+                            >
+                              <XCircle className="h-3.5 w-3.5" /> Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {leave.adminComment
+                              ? `"${leave.adminComment.slice(0, 20)}${leave.adminComment.length > 20 ? "..." : ""}"`
+                              : "—"}
+                          </span>
+                        )}
+                      </Td>
+                    </TableRow>
+                  ))
+              }
             </TableBody>
           </Table>
         </div>
@@ -187,32 +220,55 @@ export default function LeavesPage() {
       {selectedLeave && (
         <Modal
           isOpen
-          onClose={() => setSelectedLeave(null)}
+          onClose={() => { setSelectedLeave(null); setComment("") }}
           title={selectedLeave.action === "approve" ? "Approve Leave" : "Reject Leave"}
           size="sm"
         >
           <div className="space-y-4">
-            <div className="rounded-xl bg-muted/40 p-3 text-sm">
-              <p><strong>{selectedLeave.employee?.name}</strong> has requested <strong>{selectedLeave.days} day(s)</strong> of {selectedLeave.leaveType?.name}</p>
-              <p className="text-muted-foreground mt-1">{formatDate(selectedLeave.fromDate)} → {formatDate(selectedLeave.toDate)}</p>
-              <p className="mt-1">Reason: {selectedLeave.reason}</p>
+            <div className="rounded-xl bg-muted/40 p-3 text-sm space-y-1">
+              <p>
+                <strong>{selectedLeave.employee?.name}</strong> has requested{" "}
+                <strong>{selectedLeave.days} day(s)</strong> of{" "}
+                {selectedLeave.leaveType?.name || "leave"}
+              </p>
+              <p className="text-muted-foreground">
+                {formatDate(selectedLeave.fromDate)} → {formatDate(selectedLeave.toDate)}
+              </p>
+              <p>Reason: {selectedLeave.reason}</p>
             </div>
+
             <div>
-              <Label>Comment {selectedLeave.action === "reject" && <span className="text-destructive">*</span>}</Label>
+              <Label>
+                Comment{" "}
+                {selectedLeave.action === "reject" && (
+                  <span className="text-destructive">*</span>
+                )}
+              </Label>
               <Textarea
-                placeholder={selectedLeave.action === "reject" ? "Reason for rejection..." : "Optional comment..."}
+                placeholder={
+                  selectedLeave.action === "reject"
+                    ? "Reason for rejection..."
+                    : "Optional comment..."
+                }
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={e => setComment(e.target.value)}
                 className="mt-1.5"
                 rows={3}
               />
             </div>
+
             <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setSelectedLeave(null)}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => { setSelectedLeave(null); setComment("") }}
+              >
+                Cancel
+              </Button>
               {selectedLeave.action === "approve" ? (
                 <Button
                   variant="success"
                   loading={approveMutation.isPending}
+                  disabled={approveMutation.isPending}
                   onClick={() => approveMutation.mutate({ id: selectedLeave.id, comment })}
                 >
                   Confirm Approval
@@ -221,12 +277,50 @@ export default function LeavesPage() {
                 <Button
                   variant="destructive"
                   loading={rejectMutation.isPending}
+                  disabled={rejectMutation.isPending || !comment.trim()}
                   onClick={() => rejectMutation.mutate({ id: selectedLeave.id, comment })}
                 >
                   Confirm Rejection
                 </Button>
               )}
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Leave Types Modal */}
+      {leaveTypesModal && (
+        <Modal
+          isOpen
+          onClose={() => setLeaveTypesModal(false)}
+          title="Leave Types"
+          size="md"
+        >
+          <div className="space-y-3">
+            {!Array.isArray(leaveTypes) || leaveTypes.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No leave types configured
+              </p>
+            ) : (
+              leaveTypes.map(lt => (
+                <div
+                  key={lt.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/20"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{lt.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lt.code} · {lt.defaultDays} days ·{" "}
+                      {lt.isPaid ? "Paid" : "Unpaid"}
+                      {lt.isCarryForward ? ` · Carry forward: ${lt.maxCarryForward}d` : ""}
+                    </p>
+                  </div>
+                  <Badge variant={lt.isActive ? "success" : "secondary"}>
+                    {lt.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+              ))
+            )}
           </div>
         </Modal>
       )}

@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/Input"
 import { Label } from "@/components/ui/Label"
 import { Select } from "@/components/ui/Select"
 import { Textarea } from "@/components/ui/Textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import { StatusBadge, Badge } from "@/components/ui/Badge"
 import { Modal } from "@/components/ui/Modal"
 import { Table, TableHead, TableBody, TableRow, Th, Td, EmptyRow } from "@/components/ui/Table"
@@ -33,22 +32,26 @@ export default function EmployeeLeavesPage() {
   const qc = useQueryClient()
   const [applyModal, setApplyModal] = useState(false)
 
+  // ✅ FIX: service already destructures {data}, so d = API response body
+  // API returns: { success: true, data: { balances: [...] } }
   const { data: balance } = useQuery({
     queryKey: ["leave-balance"],
     queryFn: leaveService.getBalance,
-    select: d => d.data,
+    select: d => d.data?.balances || d.data?.balance || d.data || [],
   })
 
+  // API returns: { success: true, data: { leaveTypes: [...] } }
   const { data: leaveTypes } = useQuery({
     queryKey: ["leave-types"],
     queryFn: leaveService.getLeaveTypes,
-    select: d => d.data,
+    select: d => d.data?.leaveTypes || d.data || [],
   })
 
+  // API returns: { success: true, data: { leaves: [...] } }
   const { data: myLeaves, isLoading } = useQuery({
     queryKey: ["my-leaves"],
     queryFn: () => leaveService.getMyLeaves({ limit: 20 }),
-    select: d => d.data?.leaves,
+    select: d => d.data?.leaves || [],
   })
 
   const applyMutation = useMutation({
@@ -58,16 +61,22 @@ export default function EmployeeLeavesPage() {
       qc.invalidateQueries({ queryKey: ["leave-balance"] })
       toast.success("Leave application submitted!")
       setApplyModal(false)
+      reset()
     },
     onError: e => toast.error(e.response?.data?.message || "Failed to apply"),
   })
 
   const cancelMutation = useMutation({
     mutationFn: leaveService.cancel,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["my-leaves"] }); toast.success("Leave cancelled") },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-leaves"] })
+      qc.invalidateQueries({ queryKey: ["leave-balance"] })
+      toast.success("Leave cancelled")
+    },
+    onError: e => toast.error(e.response?.data?.message || "Failed to cancel"),
   })
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
     resolver: zodResolver(leaveSchema),
     defaultValues: { isHalfDay: false },
   })
@@ -76,8 +85,15 @@ export default function EmployeeLeavesPage() {
   const toDate = watch("toDate")
   const isHalfDay = watch("isHalfDay")
   const days = fromDate && toDate
-    ? isHalfDay ? 0.5 : Math.max(0, Math.ceil((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24)) + 1)
+    ? isHalfDay
+      ? 0.5
+      : Math.max(0, Math.ceil((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24)) + 1)
     : 0
+
+  const handleCloseModal = () => {
+    setApplyModal(false)
+    reset()
+  }
 
   return (
     <EmployeeLayout title="Leave Management">
@@ -94,19 +110,22 @@ export default function EmployeeLeavesPage() {
 
         {/* Leave Balance Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {balance?.map(b => (
-            <div key={b.type} className="metric-card text-center">
-              <p className="text-2xl font-bold text-primary">{b.remaining}</p>
-              <p className="text-sm font-medium">{b.type}</p>
-              <p className="text-xs text-muted-foreground">{b.used} used / {b.total} total</p>
+          {Array.isArray(balance) && balance.map((b, i) => (
+            <div key={b.typeId || b.type || i} className="metric-card text-center">
+              <p className="text-2xl font-bold text-primary">{b.remaining ?? 0}</p>
+              <p className="text-sm font-medium">{b.type || b.name || "Leave"}</p>
+              <p className="text-xs text-muted-foreground">{b.used ?? 0} used / {b.total ?? 0} total</p>
               <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
-                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(b.remaining / b.total) * 100}%` }} />
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${b.total ? (b.remaining / b.total) * 100 : 0}%` }}
+                />
               </div>
             </div>
           ))}
         </div>
 
-        {/* Leave History */}
+        {/* Leave History Table */}
         <div className="rounded-xl border bg-card overflow-hidden">
           <Table>
             <TableHead>
@@ -121,66 +140,117 @@ export default function EmployeeLeavesPage() {
               </tr>
             </TableHead>
             <TableBody>
-              {isLoading ? Array.from({length:5}).map((_,i)=><SkeletonRow key={i} cols={7}/>) :
-                !myLeaves?.length ? <EmptyRow colSpan={7} message="No leave applications yet"/> :
-                myLeaves.map(leave => (
-                  <TableRow key={leave.id}>
-                    <Td>
-                      <span className="text-sm font-medium">{leave.leaveType?.name}</span>
-                      {leave.isHalfDay && <Badge variant="info" className="ml-1.5 text-xs">Half Day</Badge>}
-                    </Td>
-                    <Td className="text-sm">{formatDate(leave.fromDate)}</Td>
-                    <Td className="text-sm">{formatDate(leave.toDate)}</Td>
-                    <Td className="text-sm font-medium">{leave.days}</Td>
-                    <Td className="text-sm text-muted-foreground max-w-[180px] truncate">{leave.reason}</Td>
-                    <Td>
-                      <div>
-                        <StatusBadge status={leave.status === "PENDING" ? "Pending" : leave.status === "APPROVED" ? "Approved" : "Rejected"} />
-                        {leave.adminComment && <p className="text-xs text-muted-foreground mt-0.5 max-w-[120px] truncate">{leave.adminComment}</p>}
-                      </div>
-                    </Td>
-                    <Td className="text-right">
-                      {leave.status === "PENDING" && (
-                        <Button size="sm" variant="ghost" onClick={() => cancelMutation.mutate(leave.id)}>
-                          <X className="h-3.5 w-3.5" /> Cancel
-                        </Button>
-                      )}
-                    </Td>
-                  </TableRow>
-                ))
+              {isLoading
+                ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={7} />)
+                : !myLeaves?.length
+                  ? <EmptyRow colSpan={7} message="No leave applications yet" />
+                  : myLeaves.map(leave => (
+                    <TableRow key={leave.id}>
+                      <Td>
+                        <span className="text-sm font-medium">
+                          {leave.leaveType?.name || "—"}
+                        </span>
+                        {leave.isHalfDay && (
+                          <Badge variant="info" className="ml-1.5 text-xs">Half Day</Badge>
+                        )}
+                      </Td>
+                      <Td className="text-sm">{formatDate(leave.fromDate)}</Td>
+                      <Td className="text-sm">{formatDate(leave.toDate)}</Td>
+                      <Td className="text-sm font-medium">{leave.days}</Td>
+                      <Td className="text-sm text-muted-foreground max-w-[180px] truncate">
+                        {leave.reason}
+                      </Td>
+                      <Td>
+                        <div>
+                          <StatusBadge
+                            status={
+                              leave.status === "PENDING" ? "Pending"
+                              : leave.status === "APPROVED" ? "Approved"
+                              : "Rejected"
+                            }
+                          />
+                          {leave.adminComment && (
+                            <p className="text-xs text-muted-foreground mt-0.5 max-w-[120px] truncate">
+                              {leave.adminComment}
+                            </p>
+                          )}
+                        </div>
+                      </Td>
+                      <Td className="text-right">
+                        {leave.status === "PENDING" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            loading={cancelMutation.isPending}
+                            onClick={() => cancelMutation.mutate(leave.id)}
+                          >
+                            <X className="h-3.5 w-3.5" /> Cancel
+                          </Button>
+                        )}
+                      </Td>
+                    </TableRow>
+                  ))
               }
             </TableBody>
           </Table>
         </div>
       </div>
 
-      <Modal isOpen={applyModal} onClose={() => setApplyModal(false)} title="Apply for Leave" size="md">
+      {/* Apply Leave Modal */}
+      <Modal isOpen={applyModal} onClose={handleCloseModal} title="Apply for Leave" size="md">
         <form onSubmit={handleSubmit(d => applyMutation.mutate(d))} className="space-y-4">
           <div>
             <Label required>Leave Type</Label>
             <Select {...register("leaveTypeId")} className="mt-1.5">
               <option value="">Select type</option>
-              {leaveTypes?.map(lt => (
-                <option key={lt.id} value={lt.id}>{lt.name} (Balance: {balance?.find(b => b.typeId === lt.id)?.remaining || 0} days)</option>
+              {Array.isArray(leaveTypes) && leaveTypes.map(lt => (
+                <option key={lt.id} value={lt.id}>
+                  {lt.name} (Balance: {balance?.find(b => b.typeId === lt.id)?.remaining ?? 0} days)
+                </option>
               ))}
             </Select>
-            {errors.leaveTypeId && <p className="form-error">{errors.leaveTypeId.message}</p>}
+            {errors.leaveTypeId && (
+              <p className="form-error">{errors.leaveTypeId.message}</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/40">
-            <input type="checkbox" id="halfDay" {...register("isHalfDay")} className="rounded" />
-            <label htmlFor="halfDay" className="text-sm font-medium cursor-pointer">Apply for Half Day only</label>
+            <input
+              type="checkbox"
+              id="halfDay"
+              {...register("isHalfDay")}
+              className="rounded"
+            />
+            <label htmlFor="halfDay" className="text-sm font-medium cursor-pointer">
+              Apply for Half Day only
+            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label required>From Date</Label>
-              <Input type="date" {...register("fromDate")} className="mt-1.5" min={new Date().toISOString().split("T")[0]} />
-              {errors.fromDate && <p className="form-error">{errors.fromDate.message}</p>}
+              <Input
+                type="date"
+                {...register("fromDate")}
+                className="mt-1.5"
+                min={new Date().toISOString().split("T")[0]}
+              />
+              {errors.fromDate && (
+                <p className="form-error">{errors.fromDate.message}</p>
+              )}
             </div>
             <div>
               <Label required>To Date</Label>
-              <Input type="date" {...register("toDate")} className="mt-1.5" min={fromDate || new Date().toISOString().split("T")[0]} disabled={isHalfDay} />
+              <Input
+                type="date"
+                {...register("toDate")}
+                className="mt-1.5"
+                min={fromDate || new Date().toISOString().split("T")[0]}
+                disabled={isHalfDay}
+              />
+              {errors.toDate && (
+                <p className="form-error">{errors.toDate.message}</p>
+              )}
             </div>
           </div>
 
@@ -192,13 +262,24 @@ export default function EmployeeLeavesPage() {
 
           <div>
             <Label required>Reason</Label>
-            <Textarea placeholder="Reason for leave..." {...register("reason")} className="mt-1.5" rows={3} />
-            {errors.reason && <p className="form-error">{errors.reason.message}</p>}
+            <Textarea
+              placeholder="Reason for leave..."
+              {...register("reason")}
+              className="mt-1.5"
+              rows={3}
+            />
+            {errors.reason && (
+              <p className="form-error">{errors.reason.message}</p>
+            )}
           </div>
 
           <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => setApplyModal(false)} type="button">Cancel</Button>
-            <Button type="submit" loading={applyMutation.isPending}><Calendar className="h-4 w-4" /> Submit Application</Button>
+            <Button variant="outline" onClick={handleCloseModal} type="button">
+              Cancel
+            </Button>
+            <Button type="submit" loading={applyMutation.isPending}>
+              <Calendar className="h-4 w-4" /> Submit Application
+            </Button>
           </div>
         </form>
       </Modal>
