@@ -56,33 +56,33 @@ const useAuthStore = create(
       },
 
       logout: async () => {
-        try {
-          const { refreshToken } = get()
-          if (refreshToken) {
-            await api.post("/auth/logout", { refreshToken })
-          }
-        } catch (_) {}
+  try {
+    const { refreshToken } = get()
+    if (refreshToken) {
+      await api.post("/auth/logout", { refreshToken })
+    }
+  } catch (_) {}
 
-        // ✅ Sab clear karo
-        localStorage.removeItem("accessToken")
-        localStorage.removeItem("refreshToken")
-        localStorage.removeItem("ems-auth") // Zustand persist bhi
+  // Sab clear karo
+  localStorage.removeItem("accessToken")
+  localStorage.removeItem("refreshToken")
+  localStorage.removeItem("ems-auth")
 
-        clearCookie("accessToken")
-        clearCookie("refreshToken")
+  clearCookie("accessToken")
+  clearCookie("refreshToken")
 
-        // ✅ State reset pehle
-        set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          isAuthenticated: false,
-          hydrated: true,
-        })
+  // State reset
+  set({
+    user: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
+    hydrated: true,
+  })
 
-        // ✅ window.location NAHI — router se handle hoga (useAuth mein)
-        // Yahan se redirect REMOVE kiya — conflict hota tha
-      },
+  // ✅ Hard redirect — middleware cookie check karega, guaranteed login page
+  window.location.href = "/auth/login"
+},
 
       updateUser: (userData) => {
         set((state) => ({

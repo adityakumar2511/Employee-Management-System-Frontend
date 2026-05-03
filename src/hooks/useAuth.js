@@ -38,7 +38,7 @@ export function useAuth() {
 
     // ✅ Ek hi redirect — router.replace (no conflict)
     // window.location.replace nahi — router hi kaafi hai
-    router.replace("/auth/login")
+    // router.replace("/auth/login")
   }, [storeLogout, router])
 
   const requireAuth = useCallback(

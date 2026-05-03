@@ -36,7 +36,6 @@ export default function LoginPage() {
 
   const role = watch("role")
 
-  // ✅ Fix 1: hydrated check — store rehydrate hone tak redirect mat karo
   useEffect(() => {
     if (!hydrated) return
     if (isAuthenticated && user) {
@@ -51,7 +50,6 @@ export default function LoginPage() {
       const result = await login(data)
       if (result?.success) {
         toast.success("Welcome back! Logged in successfully.")
-        // ✅ Fix 2: replace use karo taaki back button loop na kare
         router.replace(
           result.user.role === "ADMIN"
             ? "/admin/dashboard"
@@ -59,7 +57,6 @@ export default function LoginPage() {
         )
       }
     } catch (error) {
-      // ✅ Fix 3: saare possible error shapes handle karo
       const message =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
@@ -69,7 +66,6 @@ export default function LoginPage() {
     }
   }
 
-  // ✅ Fix 4: hydrate hone tak blank screen dikhao (flicker prevent)
   if (!hydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -154,7 +150,7 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <p className="text-xs text-blue-400">
-            © 2024 EMS Pro. 100% Free deployment stack.
+            © 2026 EMS Pro. 100% Free deployment stack.
           </p>
         </div>
       </div>
@@ -188,25 +184,39 @@ export default function LoginPage() {
           </div>
 
           {/* Role toggle */}
-          <div className="flex rounded-xl border p-1 mb-6 bg-muted/40">
-            {["EMPLOYEE", "ADMIN"].map((r) => (
-              <label
-                key={r}
-                className={`flex-1 flex items-center justify-center py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 ${
-                  role === r
-                    ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <input
-                  type="radio"
-                  value={r}
-                  className="sr-only"
-                  {...register("role")}
-                />
-                {r === "EMPLOYEE" ? "👤 Employee" : "🛡️ Admin"}
-              </label>
-            ))}
+          <div className="flex rounded-xl border p-1 mb-6 bg-muted/40 gap-1">
+            {["EMPLOYEE", "ADMIN"].map((r) => {
+              const isActive = role === r
+              const isEmp = r === "EMPLOYEE"
+              return (
+                <label
+                  key={r}
+                  className={`
+                    flex-1 flex flex-col items-center justify-center py-2.5 px-3 rounded-lg
+                    text-sm cursor-pointer transition-all duration-200
+                    ${isActive
+                      ? isEmp
+                        ? "bg-blue-50 border border-blue-400 text-blue-800 dark:bg-blue-950 dark:border-blue-500 dark:text-blue-200"
+                        : "bg-violet-50 border border-violet-400 text-violet-800 dark:bg-violet-950 dark:border-violet-500 dark:text-violet-200"
+                      : "border border-transparent text-muted-foreground hover:text-foreground"
+                    }
+                  `}
+                >
+                  <input
+                    type="radio"
+                    value={r}
+                    className="sr-only"
+                    {...register("role")}
+                  />
+                  <span className="text-base leading-none mb-1">
+                    {isEmp ? "👤" : "🛡️"}
+                  </span>
+                  <span className="font-medium text-sm">
+                    {isEmp ? "Employee" : "Admin"}
+                  </span>
+                </label>
+              )
+            })}
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
