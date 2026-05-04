@@ -5,8 +5,14 @@ import api from "@/lib/axios"
 const isProduction = process.env.NODE_ENV === "production"
 const secureFlag = isProduction ? "; Secure" : ""
 
+// const setCookie = (name, value, maxAge) => {
+//   document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`
+// }
+
 const setCookie = (name, value, maxAge) => {
-  document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`
+  const isProduction = process.env.NODE_ENV === "production"
+  const secure = isProduction ? "; Secure" : ""
+  document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=None${secure}`
 }
 
 const clearCookie = (name) => {
