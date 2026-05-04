@@ -12,11 +12,32 @@ import { Input } from "@/components/ui/Input"
 import { Label } from "@/components/ui/Label"
 import { Eye, EyeOff, LogIn, Building2 } from "lucide-react"
 
+// ─── Validation schema ────────────────────────────────────────────────────────
+
 const loginSchema = z.object({
   emailOrEmployeeId: z.string().min(1, "Email or Employee ID is required"),
   password: z.string().min(1, "Password is required"),
   role: z.enum(["ADMIN", "EMPLOYEE"]),
 })
+
+// ─── Helper: cookie set hone tak wait karo (setTimeout guess nahi) ────────────
+
+function waitForCookie(name, timeout = 5000) {
+  return new Promise((resolve) => {
+    const start = Date.now()
+    const check = () => {
+      const found = document.cookie
+        .split(";")
+        .some((c) => c.trim().startsWith(`${name}=`))
+      if (found) return resolve(true)
+      if (Date.now() - start > timeout) return resolve(false) // timeout — fir bhi navigate karo
+      setTimeout(check, 50) // har 50ms pe check karo
+    }
+    check()
+  })
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
   const router = useRouter()
@@ -36,6 +57,7 @@ export default function LoginPage() {
 
   const role = watch("role")
 
+  // Pehle se logged in hai toh dashboard pe bhejo
   useEffect(() => {
     if (!hydrated) return
     if (isAuthenticated && user) {
@@ -45,51 +67,35 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, router, hydrated])
 
-  // const onSubmit = async (data) => {
-  //   try {
-  //     const result = await login(data)
-  //     if (result?.success) {
-  //       toast.success("Welcome back! Logged in successfully.")
-  //       router.replace(
-  //         result.user.role === "ADMIN"
-  //           ? "/admin/dashboard"
-  //           : "/employee/dashboard"
-  //       )
-  //     }
-  //   } catch (error) {
-  //     const message =
-  //       error?.response?.data?.message ||
-  //       error?.response?.data?.error ||
-  //       error?.message ||
-  //       "Invalid credentials. Please try again."
-  //     toast.error(message)
-  //   }
-  // }
-
   const onSubmit = async (data) => {
-  try {
-    const result = await login(data)
-    if (result?.success) {
-      toast.success("Welcome back! Logged in successfully.")
-      
-      const dest = result.user.role === "ADMIN"
-        ? "/admin/dashboard"
-        : "/employee/dashboard"
-      
-      // ✅ Cookie set hone ka wait karo
-      await new Promise(resolve => setTimeout(resolve, 500))
-      window.location.href = dest
-    }
-  } catch (error) {
-    const message =
-      error?.response?.data?.message ||
-      error?.response?.data?.error ||
-      error?.message ||
-      "Invalid credentials. Please try again."
-    toast.error(message)
-  }
-}
+    try {
+      const result = await login(data)
+      if (result?.success) {
+        toast.success("Welcome back! Logged in successfully.")
 
+        const dest =
+          result.user.role === "ADMIN"
+            ? "/admin/dashboard"
+            : "/employee/dashboard"
+
+        // ✅ Cookie actually readable hone tak wait karo — setTimeout(500) nahi
+        // Poll karta hai har 50ms pe, max 5 seconds tak
+        await waitForCookie("accessToken", 5000)
+
+        // ✅ Hard navigation — middleware fresh request ke saath cookie padh lega
+        window.location.href = dest
+      }
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "Invalid credentials. Please try again."
+      toast.error(message)
+    }
+  }
+
+  // Zustand hydrate hone tak spinner dikhao
   if (!hydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -100,7 +106,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — branding */}
+      {/* ─── Left panel — branding ─────────────────────────────────────────── */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden"
         style={{ background: "hsl(222 47% 11%)" }}
@@ -179,7 +185,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — login form */}
+      {/* ─── Right panel — login form ──────────────────────────────────────── */}
       <div className="flex flex-1 flex-col items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
@@ -218,11 +224,12 @@ export default function LoginPage() {
                   className={`
                     flex-1 flex flex-col items-center justify-center py-2.5 px-3 rounded-lg
                     text-sm cursor-pointer transition-all duration-200
-                    ${isActive
-                      ? isEmp
-                        ? "bg-blue-50 border border-blue-400 text-blue-800 dark:bg-blue-950 dark:border-blue-500 dark:text-blue-200"
-                        : "bg-violet-50 border border-violet-400 text-violet-800 dark:bg-violet-950 dark:border-violet-500 dark:text-violet-200"
-                      : "border border-transparent text-muted-foreground hover:text-foreground"
+                    ${
+                      isActive
+                        ? isEmp
+                          ? "bg-blue-50 border border-blue-400 text-blue-800 dark:bg-blue-950 dark:border-blue-500 dark:text-blue-200"
+                          : "bg-violet-50 border border-violet-400 text-violet-800 dark:bg-violet-950 dark:border-violet-500 dark:text-violet-200"
+                        : "border border-transparent text-muted-foreground hover:text-foreground"
                     }
                   `}
                 >
