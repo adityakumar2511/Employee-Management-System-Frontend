@@ -5,6 +5,7 @@ import { queryClient } from "@/lib/queryClient"
 import { useSocket } from "@/hooks/useSocket"
 import useAuthStore from "@/store/authStore"
 import BackendLoader from "@/components/ui/BackendLoader"
+import { usePathname } from "next/navigation"  // ← add karo
 
 function SocketProvider({ children }) {
   const user = useAuthStore((state) => state.user)
@@ -13,14 +14,21 @@ function SocketProvider({ children }) {
 }
 
 export default function Providers({ children }) {
+  const pathname = usePathname()  // ← add karo
+  const isAuthPage = pathname?.startsWith("/auth")  // ← add karo
+
   return (
     <QueryClientProvider client={queryClient}>
-      {/* ✅ Pehle backend wake karo, phir app show karo */}
-      <BackendLoader>
-        <SocketProvider>
-          {children}
-        </SocketProvider>
-      </BackendLoader>
+      {/* ✅ Auth pages par BackendLoader mat dikhao */}
+      {isAuthPage ? (
+        <SocketProvider>{children}</SocketProvider>
+      ) : (
+        <BackendLoader>
+          <SocketProvider>
+            {children}
+          </SocketProvider>
+        </BackendLoader>
+      )}
       {process.env.NODE_ENV === "development" && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}
