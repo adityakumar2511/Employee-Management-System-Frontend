@@ -1,6 +1,6 @@
-# EMS Pro — Frontend
+﻿# EMS Pro — Frontend
 
-Next.js 14 frontend for the Employee Management System with real-time Socket.io updates, Firebase push notifications, and geofenced attendance.
+Next.js 16 frontend for the Employee Management System with real-time Socket.io updates, Firebase push notifications, and geofenced attendance.
 
 ---
 
@@ -8,17 +8,19 @@ Next.js 14 frontend for the Employee Management System with real-time Socket.io 
 
 | Technology | Purpose |
 |-----------|---------|
-| Next.js 14 (App Router) | React framework |
+| Next.js 16 (App Router) | React framework |
 | Tailwind CSS | Styling |
 | Zustand | Global state management |
 | React Query (@tanstack/react-query) | Server state + caching |
-| Axios | HTTP client (JWT interceptor) |
+| Axios | HTTP client + JWT interceptor |
 | Socket.io-client | Real-time updates |
 | Firebase SDK | Push notifications (FCM) |
 | Recharts | Charts & graphs |
-| React-Leaflet | Geofence map |
-| react-hot-toast | Toast notifications |
+| React-Leaflet + Leaflet | Geofence map |
 | jose | JWT verification (middleware) |
+| Zod | Runtime input validation |
+| Sonner | Toast notifications |
+| Radix UI | Accessible UI primitives |
 
 ---
 
@@ -29,14 +31,14 @@ Next.js 14 frontend for the Employee Management System with real-time Socket.io 
 npm install
 
 # 2. Configure environment
-cp .env.local.example .env.local
-# .env.local fill karo (API URL, Firebase config)
+# Update the existing .env file with backend API URL and Firebase config
+# If you do not have .env, create one at the project root.
 
-# 3. Development server start
+# 3. Start development server
 npm run dev
 ```
 
-Frontend: **http://localhost:3000**
+App: **http://localhost:3000**
 
 ---
 
@@ -56,11 +58,11 @@ ems-frontend/
 ├── middleware.js                      # Route protection (JWT cookie check)
 ├── next.config.js
 ├── tailwind.config.js
-├── .env.local                         # Environment variables
+├── .env                              # Environment variables
 └── src/
     ├── app/                           # Next.js App Router pages
     │   ├── layout.js                  # Root layout
-    │   ├── providers.js               # React Query + Socket provider
+    │   ├── providers.js               # React Query + socket provider
     │   ├── auth/
     │   │   ├── login/
     │   │   ├── forgot-password/
@@ -90,46 +92,66 @@ ems-frontend/
     │   │   ├── AdminLayout.jsx
     │   │   └── EmployeeLayout.jsx
     │   ├── ui/                        # Base UI components
+    │   │   ├── Avatar.jsx
     │   │   ├── Button.jsx
-    │   │   ├── Input.jsx
-    │   │   ├── Modal.jsx
-    │   │   ├── Table.jsx
     │   │   ├── Card.jsx
-    │   │   ├── Badge.jsx
-    │   │   └── Select.jsx
+    │   │   ├── Dropdown.jsx
+    │   │   ├── Input.jsx
+    │   │   ├── Label.jsx
+    │   │   ├── Modal.jsx
+    │   │   ├── Pagination.jsx
+    │   │   ├── Select.jsx
+    │   │   ├── Spinner.jsx
+    │   │   └── Table.jsx
     │   ├── charts/
     │   │   ├── AttendanceChart.jsx
     │   │   ├── DashboardCharts.js
-    │   │   └── PayrollChart.jsx
+    │   │   ├── DepartmentChart.jsx
+    │   │   ├── PayrollChart.jsx
+    │   │   └── TaskChart.jsx
     │   ├── maps/
-    │   │   └── GeoFenceMap.jsx        # React-leaflet geofence
+    │   │   ├── GeoFenceMap.jsx
+    │   │   └── LocationPicker.jsx
+    │   ├── notifications/
+    │   │   └── NotificationBell.js
     │   └── salary-builder/
-    │       └── SalaryBuilder.jsx
+    │       ├── SalaryBuilder.js
+    │       └── SalaryStructureBuilder.jsx
+    ├── context/
+    │   └── AuthContext.js
     ├── hooks/
-    │   ├── useSocket.js               # ⚡ Real-time Socket.io hook
     │   ├── useAuth.js
-    │   ├── useGeolocation.js          # Browser GPS
-    │   ├── useFirebaseNotifications.js
+    │   ├── useDashboardCounters.js
     │   ├── useDebounce.js
-    │   └── useToast.js
+    │   ├── useFirebaseNotifications.js
+    │   ├── useFirestore.js
+    │   ├── useGeolocation.js
+    │   ├── useSocket.js
+    │   ├── useToast.js
+    │   └── useWakeUpBackend.js
     ├── lib/
-    │   ├── axios.js                   # Axios + JWT refresh interceptor
-    │   ├── socket.js                  # ⚡ Socket.io client instance
-    │   ├── queryClient.js             # React Query config (staleTime: 0)
-    │   ├── firebase.js                # Firebase config
+    │   ├── api.js
+    │   ├── axios.js
+    │   ├── backendWaker.js
+    │   ├── firebase.js
+    │   ├── queryClient.js
+    │   ├── socket.js
     │   └── utils.js
-    ├── services/                      # API call functions
+    ├── public/
+    │   ├── firebase-messaging-sw.js
+    │   └── manifest.json
+    ├── services/
+    │   ├── attendance.service.js
     │   ├── auth.service.js
     │   ├── employee.service.js
-    │   ├── attendance.service.js
     │   ├── leave.service.js
     │   ├── payroll.service.js
     │   ├── personalHoliday.service.js
-    │   ├── task.service.js
     │   ├── report.service.js
-    │   └── settings.service.js
+    │   ├── settings.service.js
+    │   └── task.service.js
     ├── store/
-    │   ├── authStore.js               # Zustand auth state (persist)
+    │   ├── authStore.js
     │   └── notificationStore.js
     └── utils/
         ├── calculateSalary.js
@@ -147,19 +169,19 @@ Backend emits "data:refresh" event
           ↓
 useSocket() hook receives it
           ↓
-React Query cache invalidate hota hai
+React Query cache is invalidated
           ↓
-Component automatically re-renders ✅
+Components refresh automatically ✅
 ```
 
 ### Key Files
 
-| File | Kya karta hai |
-|------|--------------|
+| File | Purpose |
+|------|---------|
 | `src/lib/socket.js` | Socket.io client instance (singleton) |
-| `src/hooks/useSocket.js` | Events listen + React Query invalidate |
-| `src/app/providers.js` | App start pe socket connect karta hai |
-| `src/lib/queryClient.js` | `staleTime: 0` — always fresh data |
+| `src/hooks/useSocket.js` | Listen for events and invalidate cache |
+| `src/app/providers.js` | Connect socket and initialize React Query |
+| `src/lib/queryClient.js` | Query client with `staleTime: 0` |
 
 ### Socket Events Listened
 
@@ -182,22 +204,22 @@ Login → JWT access token (15min) + refresh token (7d)
      → localStorage + cookies (httpOnly for middleware)
 
 Axios interceptor:
-  401 response → refresh token se naya access token lo
-  Refresh fail → logout + /auth/login redirect
+  401 response → refresh token request
+  refresh fail → logout + redirect to /auth/login
 
 Next.js Middleware (middleware.js):
   /admin/* → ADMIN role check
   /employee/* → EMPLOYEE role check
-  /auth/* → Already logged in? → dashboard redirect
+  /auth/* → Redirect logged-in users to dashboard
 ```
 
 ### Auth Files
 
 | File | Purpose |
 |------|---------|
-| `src/store/authStore.js` | Zustand persist store (user, tokens) |
-| `src/lib/axios.js` | JWT attach + auto-refresh interceptor |
-| `middleware.js` | Server-side route protection (jose JWT verify) |
+| `src/store/authStore.js` | Persist auth state, user, and tokens |
+| `src/lib/axios.js` | Attach JWT and auto-refresh tokens |
+| `middleware.js` | Server-side route protection |
 
 ---
 
@@ -205,7 +227,7 @@ Next.js Middleware (middleware.js):
 
 ```
 Browser GPS → Haversine distance calculation
-           → Backend office location se compare
+           → Compare with office geofence location
            → Within radius? → Check-in allowed ✅
            → Outside radius? → Error with distance shown ❌
 ```
@@ -214,12 +236,12 @@ Browser GPS → Haversine distance calculation
 
 ## 🔔 Firebase Push Notifications
 
-Employee ko ye notifications milti hain:
+Employee receives:
 - Leave approve/reject
 - Task assigned
 - Salary credited
 
-Admin ko:
+Admin receives:
 - New leave request
 - New personal holiday request
 
@@ -227,11 +249,11 @@ Admin ko:
 
 ## 🔐 Environment Variables
 
+Update the root `.env` file with your backend and Firebase settings.
+
 ```env
-# Backend API URL
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
-# Firebase Configuration
 NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
@@ -240,78 +262,24 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
 NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:abcdef
 NEXT_PUBLIC_FIREBASE_VAPID_KEY=your_vapid_key_for_push
 
-# JWT Secret (same as backend — middleware ke liye)
 JWT_SECRET=your_same_jwt_secret_as_backend
 ```
 
 ---
 
-## 📦 Install Commands
+## 📦 Scripts
 
 ```bash
-# Dependencies install
-npm install
-
-# Real-time ke liye (agar nahi hai)
-npm install socket.io-client
+npm run dev    # Start development server on localhost:3000
+npm run build  # Build for production
+npm start      # Start production server
+npm run lint   # Run ESLint
 ```
 
 ---
 
-## 🌐 Pages Overview
+## 📄 Notes
 
-### Admin Pages
-
-| Route | Description |
-|-------|-------------|
-| `/admin/dashboard` | KPI cards, attendance chart, recent leaves |
-| `/admin/employees` | Employee list, add/edit/delete, bulk import |
-| `/admin/attendance` | Daily attendance, WFH requests, override |
-| `/admin/leaves` | Leave requests, approve/reject |
-| `/admin/payroll` | Salary structure, generate payroll, slips |
-| `/admin/personal-holidays` | Festival holiday requests |
-| `/admin/tasks` | Task assignment, progress tracking |
-| `/admin/reports` | Excel/PDF reports download |
-| `/admin/settings` | Company settings, leave types |
-| `/admin/geo-settings` | Office geofence locations |
-
-### Employee Pages
-
-| Route | Description |
-|-------|-------------|
-| `/employee/dashboard` | Leave balance, tasks, salary summary |
-| `/employee/attendance` | GPS check-in/out, monthly calendar |
-| `/employee/leaves` | Apply leave, history, balance |
-| `/employee/personal-holidays` | Festival holiday apply |
-| `/employee/tasks` | Assigned tasks, progress update |
-| `/employee/salary` | Salary slips download |
-
----
-
-## 🚀 Build & Deploy
-
-```bash
-# Production build
-npm run build
-
-# Production start
-npm start
-```
-
-### Vercel Deploy (Recommended)
-
-```bash
-# Vercel CLI se
-npm install -g vercel
-vercel deploy
-
-# Ya GitHub repo connect karo — auto CI/CD
-```
-
-**Environment variables** Vercel dashboard mein add karo (Project → Settings → Environment Variables).
-
----
-
-## 📄 License
-
-This project is proprietary and confidential.
+- Make sure the backend API is running and reachable from `NEXT_PUBLIC_API_URL`.
+- If you change Firebase settings, restart the dev server.
+- This frontend uses server-side route protection in `middleware.js` and client-side auth state in Zustand.

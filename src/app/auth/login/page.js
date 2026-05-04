@@ -45,26 +45,49 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, user, router, hydrated])
 
+  // const onSubmit = async (data) => {
+  //   try {
+  //     const result = await login(data)
+  //     if (result?.success) {
+  //       toast.success("Welcome back! Logged in successfully.")
+  //       router.replace(
+  //         result.user.role === "ADMIN"
+  //           ? "/admin/dashboard"
+  //           : "/employee/dashboard"
+  //       )
+  //     }
+  //   } catch (error) {
+  //     const message =
+  //       error?.response?.data?.message ||
+  //       error?.response?.data?.error ||
+  //       error?.message ||
+  //       "Invalid credentials. Please try again."
+  //     toast.error(message)
+  //   }
+  // }
+
   const onSubmit = async (data) => {
-    try {
-      const result = await login(data)
-      if (result?.success) {
-        toast.success("Welcome back! Logged in successfully.")
-        router.replace(
-          result.user.role === "ADMIN"
-            ? "/admin/dashboard"
-            : "/employee/dashboard"
-        )
-      }
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message ||
-        "Invalid credentials. Please try again."
-      toast.error(message)
+  try {
+    const result = await login(data)
+    if (result?.success) {
+      toast.success("Welcome back! Logged in successfully.")
+      
+      // ✅ router.replace ki jagah hard redirect
+      const dest = result.user.role === "ADMIN"
+        ? "/admin/dashboard"
+        : "/employee/dashboard"
+      
+      window.location.href = dest  // ← yeh lagao
     }
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      "Invalid credentials. Please try again."
+    toast.error(message)
   }
+}
 
   if (!hydrated) {
     return (
