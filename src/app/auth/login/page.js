@@ -72,12 +72,13 @@ export default function LoginPage() {
     if (result?.success) {
       toast.success("Welcome back! Logged in successfully.")
       
-      // ✅ router.replace ki jagah hard redirect
       const dest = result.user.role === "ADMIN"
         ? "/admin/dashboard"
         : "/employee/dashboard"
       
-      window.location.href = dest  // ← yeh lagao
+      // ✅ Cookie set hone ka wait karo
+      await new Promise(resolve => setTimeout(resolve, 500))
+      window.location.href = dest
     }
   } catch (error) {
     const message =
