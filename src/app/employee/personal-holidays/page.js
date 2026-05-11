@@ -99,7 +99,7 @@ export default function EmployeePersonalHolidaysPage() {
                 <li>You get {balance?.total || 3} personal/festival days per year</li>
                 <li>Submit request in advance with festival name</li>
                 <li>On admin approval — <strong>NO salary deduction</strong></li>
-                <li>Attendance marked as "Personal Holiday"</li>
+                <li>Attendance marked as &quot;Personal Holiday&quot;</li>
               </ul>
             </div>
           </div>

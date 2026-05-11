@@ -119,7 +119,9 @@ export default function GeoFenceMap({
         mapInstanceRef.current = null
       }
     }
-  }, []) // sirf ek baar initialize
+    // Leaflet: mount once; center/radius/user updates handled in separate effects below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional single init
+  }, [])
 
   // ─── Center change hone pe marker + circle update karo ────────────────────
   useEffect(() => {
@@ -168,6 +170,7 @@ export default function GeoFenceMap({
     // Map ka center bhi update karo smoothly
     map.setView(latlng, map.getZoom(), { animate: true })
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lat/lng/radius primitives drive updates
   }, [center?.lat, center?.lng, radius])
 
   // ─── User location update ─────────────────────────────────────────────────
@@ -193,6 +196,7 @@ export default function GeoFenceMap({
         .addTo(map)
         .bindPopup("📍 Your Location")
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lat/lng primitives drive updates
   }, [userLocation?.lat, userLocation?.lng])
 
   return (

@@ -23,7 +23,7 @@ export default function TopBar({ title }) {
     if (!user?.id) return
     const unsub = subscribeToNotifications(user.id, setNotifications)
     return () => unsub()
-  }, [user?.id])
+  }, [user?.id, setNotifications])
 
   const handleMarkRead = async (notifId) => {
     markRead(notifId)

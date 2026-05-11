@@ -127,3 +127,13 @@ export function sleep(ms) {
 export function classifyRole(role) {
   return role === "ADMIN" ? "admin" : "employee"
 }
+
+/** API may return a string or a populated LeaveType object */
+export function leaveTypeLabel(leaveType) {
+  if (leaveType == null) return "—"
+  if (typeof leaveType === "string") return leaveType
+  if (typeof leaveType === "object") {
+    return leaveType.name || leaveType.code || "—"
+  }
+  return String(leaveType)
+}

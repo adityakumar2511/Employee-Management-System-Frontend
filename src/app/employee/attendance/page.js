@@ -146,7 +146,7 @@ export default function EmployeeAttendancePage() {
           <div className="lg:col-span-3 space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Today's Attendance</CardTitle>
+                <CardTitle className="text-base">Today&apos;s Attendance</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
 

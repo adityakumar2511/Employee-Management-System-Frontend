@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 
 export function useGeolocation(options = {}) {
   const [location, setLocation] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const optionsRef = useRef(options)
+  optionsRef.current = options
 
   const getLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -44,7 +46,7 @@ export function useGeolocation(options = {}) {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 30000,
-        ...options,
+        ...optionsRef.current,
       }
     )
   }, [])

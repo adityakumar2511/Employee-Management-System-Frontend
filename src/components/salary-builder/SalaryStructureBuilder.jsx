@@ -138,7 +138,7 @@ export default function SalaryStructureBuilder({
             <Calculator className="h-8 w-8 mx-auto mb-2 opacity-30" />
             <p>No components added yet</p>
             {!readonly && (
-              <p className="text-xs mt-1">Click "Add Component" to add HRA, PF, allowances, etc.</p>
+              <p className="text-xs mt-1">Click &quot;Add Component&quot; to add HRA, PF, allowances, etc.</p>
             )}
           </div>
         ) : (

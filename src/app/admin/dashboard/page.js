@@ -10,7 +10,7 @@ import DepartmentChart from "@/components/charts/DepartmentChart"
 import PayrollChart from "@/components/charts/PayrollChart"
 import TaskChart from "@/components/charts/TaskChart"
 import { reportService } from "@/services/report.service"
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { formatCurrency, formatDate, leaveTypeLabel } from "@/lib/utils"
 import { subscribeToDashboardCounters, subscribeToActivityLogs } from "@/lib/firebase"
 import {
   Users, Clock, Calendar, DollarSign, CheckSquare, TrendingUp,
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
         {/* Live Attendance Counters */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm font-semibold">Today's Attendance</span>
+            <span className="text-sm font-semibold">Today&apos;s Attendance</span>
             <Badge variant="info" className="text-xs">Live</Badge>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
                       <Avatar name={leave.employeeName} size="sm" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{leave.employeeName}</p>
-                        <p className="text-xs text-muted-foreground">{leave.leaveType} • {leave.days} day(s)</p>
+                        <p className="text-xs text-muted-foreground">{leaveTypeLabel(leave.leaveType)} • {leave.days} day(s)</p>
                       </div>
                       <StatusBadge status="Pending" />
                     </div>

@@ -32,26 +32,24 @@ export default function EmployeeLeavesPage() {
   const qc = useQueryClient()
   const [applyModal, setApplyModal] = useState(false)
 
-  // ✅ FIX: service already destructures {data}, so d = API response body
-  // API returns: { success: true, data: { balances: [...] } }
+  // ✅ FIX: ?? operator use karo, || nahi
   const { data: balance } = useQuery({
     queryKey: ["leave-balance"],
     queryFn: leaveService.getBalance,
-    select: d => d.data?.balances || d.data?.balance || d.data || [],
+    select: d => d.data?.balances ?? d.data?.balance ?? [],
   })
 
-  // API returns: { success: true, data: { leaveTypes: [...] } }
+  // ✅ FIX: ?? operator use karo, || nahi
   const { data: leaveTypes } = useQuery({
     queryKey: ["leave-types"],
     queryFn: leaveService.getLeaveTypes,
-    select: d => d.data?.leaveTypes || d.data || [],
+    select: d => Array.isArray(d.data) ? d.data : [],
   })
 
-  // API returns: { success: true, data: { leaves: [...] } }
   const { data: myLeaves, isLoading } = useQuery({
     queryKey: ["my-leaves"],
     queryFn: () => leaveService.getMyLeaves({ limit: 20 }),
-    select: d => d.data?.leaves || [],
+    select: d => d.data?.leaves ?? [],
   })
 
   const applyMutation = useMutation({

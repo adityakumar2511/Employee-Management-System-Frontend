@@ -81,7 +81,7 @@ export default function PersonalHolidaysPage() {
           <div className="text-sm">
             <p className="font-medium text-purple-800 dark:text-purple-300">How Personal Holidays Work</p>
             <p className="text-purple-600 dark:text-purple-400 mt-0.5">
-              When approved, attendance is marked as "Personal Holiday" and LOP is <strong>NOT deducted</strong>. Employee balance reduces by 1.
+              When approved, attendance is marked as &quot;Personal Holiday&quot; and LOP is <strong>NOT deducted</strong>. Employee balance reduces by 1.
             </p>
           </div>
         </div>

@@ -1,4 +1,5 @@
 "use client"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { getInitials } from "@/lib/utils"
 
@@ -8,6 +9,14 @@ const sizes = {
   md: "h-10 w-10 text-sm",
   lg: "h-12 w-12 text-base",
   xl: "h-16 w-16 text-lg",
+}
+
+const sizePixels = {
+  xs: 24,
+  sm: 32,
+  md: 40,
+  lg: 48,
+  xl: 64,
 }
 
 const colors = [
@@ -29,10 +38,14 @@ function getColorFromName(name) {
 
 export function Avatar({ name, src, size = "md", className }) {
   if (src) {
+    const dim = sizePixels[size] ?? sizePixels.md
     return (
-      <img
+      <Image
         src={src}
         alt={name || "Avatar"}
+        width={dim}
+        height={dim}
+        unoptimized
         className={cn("rounded-full object-cover flex-shrink-0", sizes[size], className)}
       />
     )

@@ -13,7 +13,7 @@ import { Table, TableHead, TableBody, TableRow, Th, Td, EmptyRow } from "@/compo
 import { SkeletonRow } from "@/components/ui/Spinner"
 import { reportService } from "@/services/report.service"
 import { useToast } from "@/hooks/useToast"
-import { formatDate, formatCurrency } from "@/lib/utils"
+import { formatDate, formatCurrency, leaveTypeLabel } from "@/lib/utils"
 import dayjs from "dayjs"
 import { Download, BarChart2, Clock, Calendar, DollarSign, CheckSquare, PartyPopper } from "lucide-react"
 
@@ -178,7 +178,7 @@ function LeaveReportTable({ data, isLoading }) {
           data.map((r,i)=>(
             <TableRow key={i}>
               <Td><div className="flex items-center gap-2"><Avatar name={r.name} size="sm"/><p className="text-sm font-medium">{r.name}</p></div></Td>
-              <Td className="text-sm">{r.leaveType}</Td>
+              <Td className="text-sm">{leaveTypeLabel(r.leaveType)}</Td>
               <Td className="text-sm">{r.total}</Td>
               <Td className="text-sm text-red-600">{r.used}</Td>
               <Td className="text-sm text-green-600 font-medium">{r.balance}</Td>

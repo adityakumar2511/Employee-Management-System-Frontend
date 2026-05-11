@@ -31,20 +31,19 @@ export default function LeavesPage() {
 
   const debouncedSearch = useDebounce(search)
 
-  // API returns: { success, data: { leaves, totalPages, pendingCount } }
   const { data, isLoading } = useQuery({
     queryKey: ["leaves-admin", page, debouncedSearch, statusFilter],
     queryFn: () => leaveService.getAllLeaves({
       page, limit: 15, search: debouncedSearch, status: statusFilter,
     }),
-    select: d => d.data, // ✅ correct — need whole object {leaves, totalPages, pendingCount}
+    select: d => d.data,
   })
 
-  // ✅ FIX: d.data.leaveTypes array chahiye, not d.data object
+  // ✅ FIX: ?? operator use karo, || nahi
   const { data: leaveTypes } = useQuery({
     queryKey: ["leave-types"],
     queryFn: () => leaveService.getLeaveTypes(),
-    select: d => d.data?.leaveTypes || d.data || [],
+    select: d => Array.isArray(d.data) ? d.data : [],
   })
 
   const approveMutation = useMutation({
